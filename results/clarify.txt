@@ -1,0 +1,3 @@
+Adjusted results
+ - max probability: 0.03162979546543632
+ - hit point's r-coordinate: [14.23922686]

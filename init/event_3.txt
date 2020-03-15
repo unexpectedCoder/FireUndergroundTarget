@@ -1,0 +1,5 @@
+A1 norm 0.5 0.25 0.09
+A2 expon 87600 3e-7
+A3 uniform 0.4 0 1000
+A4 expon 20 0.5e-3
+A5 expon 0.4 0.08
