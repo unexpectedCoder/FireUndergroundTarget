@@ -1,5 +1,6 @@
 from typing import Union, List
 from scipy import stats
+from scipy.optimize import minimize
 import numpy as np
 
 from my_types import FlightComplex
@@ -115,4 +116,66 @@ def defeat_law(d: float, D1: float, D2: float) -> float:
 
 
 def target_coords(R: float, phi: float) -> tuple:
+    """
+    Calculates target moving on circle coordinates.
+    :param R: circle's radius
+    :param phi: horizontal angle
+    :return: (x, y) coordinates
+    """
     return R * np.cos(phi), R * np.sin(phi)
+
+
+def clarify(data):
+    """
+    Clarifies the range of data for stochastic modelling using user's input.
+    :param data: current data
+    """
+    print("Set new x boundaries to clarify:")
+    data['r0'] = input(" - left r: ")
+    data['rn'] = input(" - right r: ")
+    data['n_steps'] = input("Set amount of hit point's radius breaks: ")
+    data['n_tests'] = input("Set amount of stochastic tests: ")
+
+
+def approximate(x: np.ndarray, y: np.ndarray, pwr: int) -> tuple:
+    """
+    Approximates input data.
+    :param x: data x-axes
+    :param y: data y-axes
+    :param pwr: polynomial power
+    :return: approximation polynomial coefficients, extremum (max) of approximation function
+    """
+    polynom = np.polyfit(x, y, pwr)
+    p_approx = np.polyval(polynom, x)
+    extr_max = minimize(approx_func, x.mean(), args=(polynom[::-1], True))
+    return p_approx, extr_max
+
+
+def set_polynom_power() -> int:
+    """
+    Sets polynomial power using user's input.
+    :return: polynomial power
+    """
+    pmin, pmax = 1, 5
+    pwr = int(input(f"Approximation polynomial power (in range of integer [{pmin}; {pmax}]): "))
+    if pwr < pmin:
+        return pmin
+    if pwr > pmax:
+        return pmax
+    return pwr
+
+
+def approx_func(x: float, coeffs: np.ndarray, neg: bool = False) -> float:
+    """
+    Approximation function (polynomial).
+    :param x: current argument
+    :param coeffs: polynomial coefficients array (first element for the lowest 'x' power)
+    :param neg: mul the result by -1 (True) or not (False)
+    :return: approximation value
+    """
+    ans = 0
+    for i, k in enumerate(coeffs):
+        ans += k * x**i
+    if neg:
+        return -ans
+    return ans

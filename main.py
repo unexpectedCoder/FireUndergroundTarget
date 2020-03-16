@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from my_types import FlightComplex
-import data_reader
+import data_init
 import solver
 
 
@@ -14,7 +14,10 @@ def main():
         print(f"Resulting probabilities: {probs}")
         print(res)
         # Task 2
-        task2()
+        extr_max = task2()
+        print(f"Extremum:"
+              f"\n - fun: {-extr_max.fun}"
+              f"\n - x: {extr_max.x}")
     except ValueError:
         exit(-1)
     else:
@@ -33,7 +36,7 @@ def task1():
     # Solution
     complexes = []
     for i, path in enumerate(paths):
-        events = data_reader.read_events(path)
+        events = data_init.read_events(path)
         complexes.append(FlightComplex(i + 1, events))
     # Results
     probs = np.array(solver.delivery_probs(complexes))
@@ -43,47 +46,37 @@ def task1():
 def task2():
     print("\n\tTASK #2")
     # Init
-    data = data_reader.read_csv(data_reader.txt2csv('init/data.txt', 'init/data.csv'))[0]
+    data = data_init.read_csv(data_init.txt2csv('init/data.txt', 'init/data.csv'))[0]
+    # Run
     hit_points, p_mean = solver.stochastic_modelling(data)
     # Visualization
-    make_plot(hit_points, p_mean)
-
+    plot(hit_points, p_mean)
     # Clarify
-    print("Set new x boundaries to clarify:")
-    data['r0'] = input(" - left r: ")
-    data['rn'] = input(" - right r: ")
-    data['n_steps'] = input("Set amount of hit point's radius breaks: ")
-    data['n_tests'] = input("Set amount of stochastic tests: ")
-    pwr = int(input("Approximation polynomial power (in range of integer [1; 5]): "))
-    if pwr < 1:
-        pwr = 1
-    elif pwr > 5:
-        pwr = 5
-    # Approximation
+    solver.clarify(data)
+    pwr = solver.set_polynom_power()
+    # Run
     hit_points, p_mean = solver.stochastic_modelling(data)
-    polynom = np.polyfit(hit_points, p_mean, pwr)
-    p_approx = np.polyval(polynom, hit_points)
-    extr_max = minimize(approx_func, hit_points.mean(), args=(polynom[::-1]))
-    print(f"Extremum:"
-          f"\n - fun: {-extr_max.fun}"
-          f"\n - x: {extr_max.x}")
+    # Approximation
+    p_approx, extr_max = solver.approximate(hit_points, p_mean, pwr)
     # Visualization
-    make_plot(hit_points, p_mean, p_approx)
+    plot(hit_points, p_mean, p_approx)
 
     with open('results/clarify.txt', 'w') as file:
         file.write(f"Adjusted results\n"
                    f" - max probability: {-extr_max.fun}\n"
                    f" - hit point's r-coordinate: {extr_max.x}")
 
-
-def approx_func(x: float, coeffs: np.ndarray) -> float:
-    ans = 0
-    for i, k in enumerate(coeffs):
-        ans += k * x**i
-    return -ans
+    return extr_max
 
 
-def make_plot(x: np.ndarray, y: np.ndarray, y_approx: np.ndarray = None, title: str = None):
+def plot(x: np.ndarray, y: np.ndarray, y_approx: np.ndarray = None, title: str = None):
+    """
+    Makes and show plots for results of stochastic modelling.
+    :param x: x-argument for plots
+    :param y: y-argument for plots
+    :param y_approx: approximated y-arguments for plots
+    :param title: title all of the plots
+    """
     fig, ax = plt.subplots(figsize=(6, 4))
 
     ax.plot(x, y, 'b.', label='Средняя вероятность')
