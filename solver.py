@@ -1,4 +1,5 @@
 from typing import Union, List
+from math import floor
 from scipy import stats
 from scipy.optimize import minimize
 import numpy as np
@@ -39,6 +40,20 @@ def delivery_prob(complex: FlightComplex):
     for event in complex.events:
         prob *= event.get_prob()
     return prob
+
+
+def get_needed_n(p1: float, p_req: float) -> int:
+    """
+    Returns needed number of flight complexes for to complete a task with a required probability p_req.
+    :param p1: success probability for the one flight complex
+    :param p_req: required probability
+    :return: number of flight complexes for to complete a task
+    """
+    if p1 < 0 or p1 >= 1:
+        raise ValueError()
+    if p_req < 0 or p_req >= 1:
+        raise ValueError()
+    return floor(np.log(1 - p_req) / np.log(1 - p1)) + 1
 
 
 # For task #2
@@ -87,7 +102,7 @@ def check_data(data: dict):
     for key in keys:
         if key not in data.keys():
             print(f"Error {ValueError}: something wrong with input data for stochastic modelling!")
-            raise ValueError
+            raise ValueError()
 
 
 def prepare_values(data: dict) -> tuple:
