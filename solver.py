@@ -87,7 +87,7 @@ def stochastic_modelling(data: dict, to_files: bool = True):
             hit_points.append(ri)
             probs.append(mean_prob)
             if to_files:
-                res_file.write(f"\nStep {i + 1}: p = {mean_prob}")
+                res_file.write(f"\nStep {i + 1} (r = {ri}): p = {mean_prob}")
                 plot_file.write(f"\n{ri}\t{mean_prob}")
 
         return np.array(hit_points), np.array(probs)
@@ -140,29 +140,32 @@ def target_coords(R: float, phi: float) -> tuple:
     return R * np.cos(phi), R * np.sin(phi)
 
 
-def clarify(data):
+def clarify(data: dict):
     """
     Clarifies the range of data for stochastic modelling using user's input.
     :param data: current data
     """
-    print("Set new x boundaries to clarify:")
-    data['r0'] = input(" - left r: ")
-    data['rn'] = input(" - right r: ")
+    data['r0'] = input("Set left r: ")
+    data['rn'] = input("Set right r: ")
     data['n_steps'] = input("Set amount of hit point's radius breaks: ")
     data['n_tests'] = input("Set amount of stochastic tests: ")
 
 
-def approximate(x: np.ndarray, y: np.ndarray, pwr: int) -> tuple:
+def approximate(x: np.ndarray, y: np.ndarray, pwr: int, ismax: bool = True) -> tuple:
     """
     Approximates input data.
     :param x: data x-axes
     :param y: data y-axes
     :param pwr: polynomial power
+    :param ismax: search max value
     :return: approximation polynomial coefficients, extremum (max) of approximation function
     """
     polynom = np.polyfit(x, y, pwr)
     p_approx = np.polyval(polynom, x)
     extr_max = minimize(approx_func, x.mean(), args=(polynom[::-1], True))
+
+    if ismax:
+        extr_max.fun *= -1
     return p_approx, extr_max
 
 
@@ -194,3 +197,26 @@ def approx_func(x: float, coeffs: np.ndarray, neg: bool = False) -> float:
     if neg:
         return -ans
     return ans
+
+
+def analyze(data: dict, D1: np.ndarray, D2: np.ndarray, sigma: np.ndarray, pwr: int = 2) -> tuple:
+    r_res, p_res, res_max = [], [], {'D1': None, 'D2': None, 'sigma': None, 'prob': 0}
+    for d1 in D1:
+        data['D1'] = str(d1)
+        print(f"D1 = {d1}")
+        for d2 in D2:
+            data['D2'] = str(d2)
+            print(f"\tD2 = {d2}")
+            for s in sigma:
+                data['sigma'] = str(s)
+                print(f"\t\tsigma = {s}")
+
+                hit_points, p_mean = stochastic_modelling(data)
+                _, extr_max = approximate(hit_points, p_mean, pwr)
+                # Max search
+                if extr_max.fun > res_max['prob']:
+                    res_max['D1'], res_max['D2'], res_max['sigma'], res_max['prob'] = d1, d2, s, extr_max.fun
+                # Detailed results
+                r_res.append(extr_max.x)
+                p_res.append(extr_max.fun)
+    return r_res, p_res, res_max
